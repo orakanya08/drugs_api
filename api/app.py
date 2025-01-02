@@ -29,6 +29,7 @@ class_names = {
     0: "alaxan", 1: "bactidol", 2: "bioflu", 3: "biogesic", 4: "dayzinc",
     5: "decolgen", 6: "fishoil", 7: "kremil", 8: "medicol", 9: "neozep"
 }
+
 class_usage = {
     "alaxan": "รับประทานครั้งละ 1 เม็ดทุก 4-6 ชั่วโมงหลังอาหาร",
     "bactidol": "กลั้วคอด้วยปริมาณ 10 มิลลิลิตร 2-3 ครั้งต่อวัน",
