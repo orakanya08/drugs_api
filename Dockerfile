@@ -4,12 +4,13 @@ FROM python:3.9-slim
 # ตั้งค่าที่ทำงานใน container
 WORKDIR /app
 
-# ติดตั้งเครื่องมือพัฒนา (สำหรับ YOLO และ PyTorch)
+# ติดตั้งเครื่องมือพัฒนาและ dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
     cmake \
     g++ \
     libgl1-mesa-glx \
+    libglib2.0-0 \
     && apt-get clean
 
 # คัดลอกไฟล์ทั้งหมดไปยัง container
