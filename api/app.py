@@ -44,7 +44,7 @@ class_usage = {
 }
 
 # ฟังก์ชันสำหรับหาโฟลเดอร์ผลลัพธ์ล่าสุด
-def get_latest_result_folder(base_dir="runs/detect"):
+def get_latest_result_folder(base_dir="api/runs/detect"):
     subdirs = [os.path.join(base_dir, d) for d in os.listdir(base_dir) if os.path.isdir(os.path.join(base_dir, d))]
     return max(subdirs, key=os.path.getmtime) if subdirs else None
 
@@ -87,6 +87,6 @@ async def upload_file(request: Request, file: UploadFile = File(...)):
 
 @app.on_event("startup")
 def clean_old_results():
-    subdirs = [os.path.join("runs/detect", d) for d in os.listdir("runs/detect") if os.path.isdir(os.path.join("runs/detect", d))]
+    subdirs = [os.path.join("api/runs/detect", d) for d in os.listdir("api/runs/detect") if os.path.isdir(os.path.join("api/runs/detect", d))]
     for folder in subdirs[:-1]:  # เก็บโฟลเดอร์ล่าสุดไว้
         shutil.rmtree(folder)
