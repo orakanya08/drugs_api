@@ -6,7 +6,7 @@ import shutil
 import os
 import tempfile
 from ultralytics import YOLO
-from base64 import b64decode
+from PIL import Image  # สำหรับปรับขนาดภาพ
 import uuid
 
 # สร้างแอป FastAPI
@@ -16,13 +16,12 @@ app = FastAPI()
 app.mount("/static", StaticFiles(directory="api/static"), name="static")
 templates = Jinja2Templates(directory="frontend/templates")
 
-# โหลดโมเดล YOLO
-MODEL_PATH = "api/models/drugs_yolov8.pt"
-model = YOLO(MODEL_PATH)
-
-# โฟลเดอร์สำหรับเก็บไฟล์ภาพ (ใช้โฟลเดอร์ชั่วคราว)
+# โฟลเดอร์สำหรับเก็บไฟล์ชั่วคราว
 UPLOAD_FOLDER = tempfile.mkdtemp()
 RESULT_FOLDER = tempfile.mkdtemp()
+
+# ตัวแปรโมเดล
+model = None
 
 # ชื่อคลาสและคำแนะนำการใช้งาน
 class_names = {
@@ -43,8 +42,21 @@ class_usage = {
     "neozep": "รับประทานครั้งละ 1 เม็ดทุก 6 ชั่วโมง"
 }
 
+# ฟังก์ชันโหลดโมเดลเมื่อแอปเริ่มทำงาน
+@app.on_event("startup")
+async def load_model():
+    global model
+    model_path = "api/models/drugs_yolov8.pt"
+    model = YOLO(model_path, device="cuda")  # ใช้ GPU ถ้ามี
+
+# ฟังก์ชันลดขนาดภาพ
+def resize_image(image_path, max_size=(640, 640)):
+    with Image.open(image_path) as img:
+        img.thumbnail(max_size)
+        img.save(image_path)
+
 # ฟังก์ชันสำหรับหาโฟลเดอร์ผลลัพธ์ล่าสุด
-def get_latest_result_folder(base_dir="api/runs/detect"):
+def get_latest_result_folder(base_dir="runs/detect"):
     subdirs = [os.path.join(base_dir, d) for d in os.listdir(base_dir) if os.path.isdir(os.path.join(base_dir, d))]
     return max(subdirs, key=os.path.getmtime) if subdirs else None
 
@@ -60,17 +72,23 @@ async def upload_file(request: Request, file: UploadFile = File(...)):
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
 
+        # ลดขนาดภาพก่อนประมวลผล
+        resize_image(file_path)
+
         # ใช้โมเดล YOLO ทำนาย
-        results = model.predict(source=file_path, save=True)
+        results = model.predict(source=file_path, save=True, project="runs", name="detect")
 
         # ค้นหาโฟลเดอร์ผลลัพธ์ล่าสุด
         latest_result_folder = get_latest_result_folder()
-        if not latest_result_folder:
-            return {"error": "No prediction folder found. Please check the YOLO output directory."}
-        
+        if not latest_result_folder or not os.listdir(latest_result_folder):
+            return {"error": "No prediction folder found or it's empty."}
+
         result_image_path = os.path.join(latest_result_folder, file.filename)
         dest_path = os.path.join(RESULT_FOLDER, file.filename)
-        shutil.copy(result_image_path, dest_path)
+        if os.path.exists(result_image_path):
+            shutil.copy(result_image_path, dest_path)
+        else:
+            return {"error": f"Prediction file {file.filename} not found."}
 
         image_url = dest_path.replace("api/static/", "/static/")
         predictions = [
@@ -87,6 +105,6 @@ async def upload_file(request: Request, file: UploadFile = File(...)):
 
 @app.on_event("startup")
 def clean_old_results():
-    subdirs = [os.path.join("api/runs/detect", d) for d in os.listdir("api/runs/detect") if os.path.isdir(os.path.join("api/runs/detect", d))]
+    subdirs = [os.path.join("runs/detect", d) for d in os.listdir("runs/detect") if os.path.isdir(os.path.join("runs/detect", d))]
     for folder in subdirs[:-1]:  # เก็บโฟลเดอร์ล่าสุดไว้
         shutil.rmtree(folder)
