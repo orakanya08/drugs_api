@@ -15,6 +15,7 @@
     html,
     body {
         font-family: 'Sarabun';
+        background-color: #F9F6E6;
     }
 
     button {
@@ -23,7 +24,7 @@
 </style>
 
 <body>
-    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <nav class="navbar navbar-expand-lg navbar-light" style="background-color: #E1EACD;"> 
         <div class="container-fluid">
             <a class="navbar-brand" href="#">Drugs Predictions</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
@@ -48,7 +49,7 @@
         <div id="cameraSection" class="d-none mt-4">
             <video id="video" autoplay playsinline
                 style="width: 100%; max-height: 400px; border: 1px solid #ddd;"></video>
-            <button id="captureButton" class="btn btn-primary mt-3">ถ่ายภาพ</button>
+            <button id="captureButton" class="btn mt-3" style="background-color: #BAD8B6;">ถ่ายภาพ</button>
             <canvas id="canvas" style="border: 1px solid #ddd; width: 100%; max-height: 400px;" class="mt-3"></canvas>
         </div>
 
@@ -56,14 +57,14 @@
         <div id="uploadSection" class="mt-4">
             <form id="uploadForm" action="/upload/" method="post" enctype="multipart/form-data">
                 <input type="file" name="file" class="form-control mt-3" accept="image/*" required>
-                <button type="submit" class="btn btn-success mt-3">อัปโหลดภาพ</button>
+                <button type="submit" class="btn mt-3" style="background-color: #578E7E; color: #ffff;">อัปโหลดภาพ</button>
             </form>
         </div>
 
         <!-- ฟอร์มซ่อนสำหรับส่งภาพจากกล้อง -->
         <form id="cameraForm" action="/upload/base64/" method="post" class="d-none mt-4">
             <input type="hidden" name="image" id="hiddenImageInput">
-            <button type="submit" class="btn btn-success mt-3">อัปโหลดภาพที่ถ่าย</button>
+            <button type="submit" class="btn mt-3" style="background-color: #578E7E; color: #ffff;">อัปโหลดภาพที่ถ่าย</button>
         </form>
 
     </div>
