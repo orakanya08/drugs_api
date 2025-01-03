@@ -105,10 +105,17 @@ async def upload_file(request: Request, file: UploadFile = File(...)):
         if not latest_result_folder:
             return {"error": "No prediction folder found. Please check the YOLO output directory."}
 
-        result_image_path = os.path.join(latest_result_folder, file.filename)
+        # สร้างเส้นทางไฟล์ผลลัพธ์
+        result_image_path = os.path.join(latest_result_folder, os.path.basename(file.filename))
+        if not os.path.exists(result_image_path):
+            return {"error": f"File not found: {result_image_path}"}
+
+        # คัดลอกไฟล์ไปยังโฟลเดอร์ static
         dest_path = os.path.join(RESULT_FOLDER, file.filename)
+        os.makedirs(os.path.dirname(dest_path), exist_ok=True)  # ตรวจสอบและสร้างโฟลเดอร์ static
         shutil.copy(result_image_path, dest_path)
 
+        # เตรียม URL ของไฟล์ภาพผลลัพธ์
         image_url = dest_path.replace("api/static/", "/static/")
 
         # เตรียมข้อมูลคำแนะนำการใช้งาน
@@ -118,8 +125,9 @@ async def upload_file(request: Request, file: UploadFile = File(...)):
             for cls in result.boxes.cls.tolist():
                 cls_name = class_names[int(cls)]
                 predictions.append(cls_name)
-                usage_instructions.append((cls_name, class_usage[cls_name]))
+                usage_instructions.append((cls_name, class_usage.get(cls_name, "ไม่มีข้อมูล")))
 
+        # ส่งข้อมูลไปที่ template สำหรับแสดงผล
         return templates.TemplateResponse(
             "result.html",
             {
@@ -131,4 +139,5 @@ async def upload_file(request: Request, file: UploadFile = File(...)):
         )
     except Exception as e:
         return {"error": f"An error occurred: {str(e)}"}
+
 
