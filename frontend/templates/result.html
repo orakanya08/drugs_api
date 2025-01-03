@@ -13,14 +13,14 @@
 
 <body>
     <div class="container">
-        <h1>Detection Results</h1>
+        <h1>ผลลัพธ์การพยากรณ์</h1>
         <div>
-            <h2>Processed Image:</h2>
+            <h2>ภาพการประมวลผล :</h2>
             <img src="{{ image_url }}" alt="Result Image" style="max-width: 100%; margin-bottom: 20px;">
         </div>
 
         <div>
-            <h2>Predictions:</h2>
+            <h2>ชนิดยา :</h2>
             <ul>
                 {% for cls in predictions %}
                 <li>{{ cls }}</li>
@@ -29,7 +29,7 @@
         </div>
 
         <div>
-            <h2>Usage Instructions:</h2>
+            <h2>วิธีการใช้ยา :</h2>
             <ul>
                 {% for cls, usage in usage_instructions %}
                 <li><strong>{{ cls }}:</strong> {{ usage }}</li>
