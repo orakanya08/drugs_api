@@ -68,6 +68,11 @@ class_usage = {
     "neozep": "รับประทานครั้งละ 1 เม็ดทุก 6 ชั่วโมง"
 }
 
+# ฟังก์ชันสำหรับหาโฟลเดอร์ผลลัพธ์ล่าสุด
+def get_latest_result_folder(base_dir="runs/detect"):
+    subdirs = [os.path.join(base_dir, d) for d in os.listdir(base_dir) if os.path.isdir(os.path.join(base_dir, d))]
+    return max(subdirs, key=os.path.getmtime) if subdirs else None
+
 @app.on_event("startup")
 async def startup_event():
     # สร้างโฟลเดอร์ `runs/detect` ถ้าไม่มี
