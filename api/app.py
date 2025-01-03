@@ -104,20 +104,31 @@ async def upload_file(request: Request, file: UploadFile = File(...)):
         latest_result_folder = get_latest_result_folder()
         if not latest_result_folder:
             return {"error": "No prediction folder found. Please check the YOLO output directory."}
-        
+
         result_image_path = os.path.join(latest_result_folder, file.filename)
         dest_path = os.path.join(RESULT_FOLDER, file.filename)
         shutil.copy(result_image_path, dest_path)
 
         image_url = dest_path.replace("api/static/", "/static/")
-        predictions = [
-            (class_names[int(cls)], class_usage[class_names[int(cls)]])
-            for result in results for cls in result.boxes.cls.tolist()
-        ]
+
+        # เตรียมข้อมูลคำแนะนำการใช้งาน
+        predictions = []
+        usage_instructions = []
+        for result in results:
+            for cls in result.boxes.cls.tolist():
+                cls_name = class_names[int(cls)]
+                predictions.append(cls_name)
+                usage_instructions.append((cls_name, class_usage[cls_name]))
 
         return templates.TemplateResponse(
             "result.html",
-            {"request": request, "image_url": image_url, "predictions": predictions},
+            {
+                "request": request,
+                "image_url": image_url,
+                "predictions": predictions,
+                "usage_instructions": usage_instructions,
+            },
         )
     except Exception as e:
         return {"error": f"An error occurred: {str(e)}"}
+
