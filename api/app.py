@@ -1,21 +1,23 @@
-from fastapi import FastAPI, UploadFile, Form
+from fastapi import FastAPI, File, UploadFile, Request, Form
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 import shutil
 import os
+import tempfile
 from ultralytics import YOLO
+from base64 import b64decode
+import uuid
 
 app = FastAPI()
 
-# ตั้งค่า static และ templates
+# ตั้งค่า static และ templates 
 app.mount("/static", StaticFiles(directory="api/static"), name="static")
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(directory="frontend/templates")
 
 # โหลดโมเดล YOLO
 model = None
-
 
 async def load_model():
     global model
@@ -44,6 +46,25 @@ def clean_old_results():
             print(f"Error deleting directory {subdir}: {e}")
 
 
+# ชื่อคลาสและคำแนะนำการใช้งาน run
+class_names = {
+    0: "alaxan", 1: "bactidol", 2: "bioflu", 3: "biogesic", 4: "dayzinc",
+    5: "decolgen", 6: "fishoil", 7: "kremil", 8: "medicol", 9: "neozep"
+}
+
+class_usage = {
+    "alaxan": "รับประทานครั้งละ 1 เม็ดทุก 4-6 ชั่วโมงหลังอาหาร",
+    "bactidol": "กลั้วคอด้วยปริมาณ 10 มิลลิลิตร 2-3 ครั้งต่อวัน",
+    "bioflu": "รับประทานครั้งละ 1 เม็ดทุก 6 ชั่วโมง",
+    "biogesic": "รับประทานครั้งละ 1-2 เม็ดทุก 4-6 ชั่วโมง",
+    "dayzinc": "รับประทานวันละ 1 เม็ดหลังอาหาร",
+    "decolgen": "รับประทานครั้งละ 1 เม็ดทุก 6 ชั่วโมง",
+    "fishoil": "รับประทานวันละ 1-2 เม็ดพร้อมอาหาร",
+    "kremil": "เคี้ยวเม็ดครั้งละ 1-2 เม็ดหลังอาหาร",
+    "medicol": "รับประทานครั้งละ 1 เม็ดทุก 4-6 ชั่วโมง",
+    "neozep": "รับประทานครั้งละ 1 เม็ดทุก 6 ชั่วโมง"
+}
+
 @app.on_event("startup")
 async def startup_event():
     # สร้างโฟลเดอร์ `runs/detect` ถ้าไม่มี
@@ -56,24 +77,39 @@ async def startup_event():
     # ทำความสะอาดผลลัพธ์เก่า
     clean_old_results()
 
+@app.get("/", response_class=HTMLResponse)
+async def index(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
 
 @app.post("/upload/")
-async def upload_file(file: UploadFile):
+async def upload_file(request: Request, file: UploadFile = File(...)):
     try:
-        # บันทึกไฟล์ที่อัพโหลด
-        file_location = f"runs/detect/{file.filename}"
-        with open(file_location, "wb") as f:
-            shutil.copyfileobj(file.file, f)
+        # บันทึกไฟล์อัปโหลด
+        file_path = os.path.join(UPLOAD_FOLDER, file.filename)
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
 
-        # รันการตรวจจับ
-        results = model(file_location)
-        results_dir = results.save_dir
+        # ใช้โมเดล YOLO ทำนาย
+        results = model.predict(source=file_path, save=True)
 
-        return {"message": "File uploaded successfully", "results_dir": str(results_dir)}
+        # ค้นหาโฟลเดอร์ผลลัพธ์ล่าสุด
+        latest_result_folder = get_latest_result_folder()
+        if not latest_result_folder:
+            return {"error": "No prediction folder found. Please check the YOLO output directory."}
+        
+        result_image_path = os.path.join(latest_result_folder, file.filename)
+        dest_path = os.path.join(RESULT_FOLDER, file.filename)
+        shutil.copy(result_image_path, dest_path)
+
+        image_url = dest_path.replace("api/static/", "/static/")
+        predictions = [
+            (class_names[int(cls)], class_usage[class_names[int(cls)]])
+            for result in results for cls in result.boxes.cls.tolist()
+        ]
+
+        return templates.TemplateResponse(
+            "result.html",
+            {"request": request, "image_url": image_url, "predictions": predictions},
+        )
     except Exception as e:
-        return {"error": f"Error processing file: {e}"}
-
-
-@app.get("/", response_class=HTMLResponse)
-async def read_root():
-    return templates.TemplateResponse("index.html", {"request": {}})
+        return {"error": f"An error occurred: {str(e)}"}
