@@ -45,6 +45,9 @@ def clean_old_results():
         except Exception as e:
             print(f"Error deleting directory {subdir}: {e}")
 
+# โฟลเดอร์สำหรับเก็บไฟล์ภาพ (ใช้โฟลเดอร์ชั่วคราว)
+UPLOAD_FOLDER = tempfile.mkdtemp()
+RESULT_FOLDER = tempfile.mkdtemp()
 
 # ชื่อคลาสและคำแนะนำการใช้งาน run
 class_names = {
