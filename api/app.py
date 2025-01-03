@@ -47,7 +47,9 @@ class_usage = {
 async def load_model():
     global model
     model_path = "api/models/drugs_yolov8.pt"
-    model = YOLO(model_path, device="cuda")  # ใช้ GPU ถ้ามี
+    model = YOLO(model_path)  # โหลดโมเดล
+    model.to("cpu")  # กำหนดให้โมเดลทำงานบน CPU
+    print("Model loaded and running on CPU.")
 
 # ฟังก์ชันลดขนาดภาพ
 def resize_image(image_path, max_size=(640, 640)):
